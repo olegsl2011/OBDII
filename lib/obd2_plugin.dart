@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:math_expressions/math_expressions.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 enum Mode {
   parameter,
@@ -45,6 +46,9 @@ class Obd2Plugin {
   }
 
   Future<bool> get enableBluetooth async {
+
+    await Permission.bluetoothConnect.request();
+    await Permission.bluetoothScan.request();
     bool status = false;
     if (_bluetoothState == BluetoothState.STATE_OFF) {
       bool? newStatus = await FlutterBluetoothSerial.instance.requestEnable();
@@ -71,6 +75,8 @@ class Obd2Plugin {
 
 
   Future<bool> get isBluetoothEnable async {
+    await Permission.bluetoothConnect.request();
+    await Permission.bluetoothScan.request();
     if (_bluetoothState == BluetoothState.STATE_OFF) {
       return false ;
     } else if (_bluetoothState == BluetoothState.STATE_ON) {
