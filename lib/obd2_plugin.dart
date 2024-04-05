@@ -343,7 +343,7 @@ class Obd2Plugin {
         String string = String.fromCharCodes(bytes);
         print("##### $string ##### ");
         if (!string.contains('>')) {
-          if(string!=lastetCommand) {
+          if(string!=lastetCommand+"\r") {
             response +=string;
           }
         } else {
