@@ -341,7 +341,6 @@ class Obd2Plugin {
       connection?.input?.listen((Uint8List data){
         Uint8List bytes = Uint8List.fromList(data.toList());
         String string = String.fromCharCodes(bytes);
-        print("##### $string ##### ");
         if (!string.contains('>')) {
           if(string!=lastetCommand+"\r") {
             response +=string;
@@ -460,7 +459,6 @@ class Obd2Plugin {
     if (!value.contains(limit)){
       final List<String> resultsArray = value.split('\r');
       for (final String element in resultsArray) {
-        print("%%%%%% $element %%%%%");
         if(element != "NODATA") {
           String workingData;
           int startIndex = 0; // Header size.
