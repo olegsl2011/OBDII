@@ -461,27 +461,34 @@ class Obd2Plugin {
       final List<String> resultsArray = value.split('\r');
       for (final String element in resultsArray) {
         print("%%%%%% $element %%%%%");
-        String workingData;
-        int startIndex = 0; // Header size.
-        if (element.length % 4 == 0) { // CAN(ISO-15765) protocol one frame.
-          workingData = element; // 43yy{codes}
-          startIndex = 4; // Header is 43yy, yy showing the number of data items.
-        } else if (element.contains(":")) { // CAN(ISO-15765) protocol two and more frames.
-          workingData = element.replaceAll(RegExp(r'[\r\n].:'), ''); // xxx43yy{codes}
-          startIndex = 7; // Header is xxx43yy, xxx is bytes of information to follow, yy showing the number of data items.
-        } else { // ISO9141-2, KWP2000 Fast and KWP2000 5Kbps (ISO15031) protocols.
-          workingData = element.replaceAll(RegExp(r'[\r\n]?43'), '');
-        }
-        for (int begin = startIndex; begin < workingData.length; begin += 4) {
-          String dtc = '';
-          int b1 = hexStringToByteArray(workingData.substring(begin, begin + 1));
-          int ch1 = ((b1 & 0xC0) >> 6);
-          int ch2 = ((b1 & 0x30) >> 4);
-          dtc += dtcLetters[ch1];
-          dtc += hexArray[ch2];
-          dtc += workingData.substring(begin + 1, begin + 4);
-          if (dtc != 'P0000') {
-            _dtcCodes.add(dtc);
+        if(element != "NODATA") {
+          String workingData;
+          int startIndex = 0; // Header size.
+          if (element.length % 4 == 0) { // CAN(ISO-15765) protocol one frame.
+            workingData = element; // 43yy{codes}
+            startIndex =
+            4; // Header is 43yy, yy showing the number of data items.
+          } else if (element.contains(
+              ":")) { // CAN(ISO-15765) protocol two and more frames.
+            workingData =
+                element.replaceAll(RegExp(r'[\r\n].:'), ''); // xxx43yy{codes}
+            startIndex =
+            7; // Header is xxx43yy, xxx is bytes of information to follow, yy showing the number of data items.
+          } else { // ISO9141-2, KWP2000 Fast and KWP2000 5Kbps (ISO15031) protocols.
+            workingData = element.replaceAll(RegExp(r'[\r\n]?43'), '');
+          }
+          for (int begin = startIndex; begin < workingData.length; begin += 4) {
+            String dtc = '';
+            int b1 = hexStringToByteArray(
+                workingData.substring(begin, begin + 1));
+            int ch1 = ((b1 & 0xC0) >> 6);
+            int ch2 = ((b1 & 0x30) >> 4);
+            dtc += dtcLetters[ch1];
+            dtc += hexArray[ch2];
+            dtc += workingData.substring(begin + 1, begin + 4);
+            if (dtc != 'P0000') {
+              _dtcCodes.add(dtc);
+            }
           }
         }
       }
