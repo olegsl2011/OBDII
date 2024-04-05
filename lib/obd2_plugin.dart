@@ -449,7 +449,7 @@ class Obd2Plugin {
     String result = "";
     List<String> _dtcCodes = [];
     if (!value.contains(limit)){
-      List<String> dtcBytes = _calculateDtcFrames(command, value);
+      List<String> dtcBytes = calculateDtcFrames(command, value);
       if (dtcBytes.length < 6){
         // checkTheEndItem(context);
       } else {
@@ -479,6 +479,40 @@ class Obd2Plugin {
       }
     }
     return _dtcCodes ;
+  }
+
+  List<String> testGetDTCCodes(List<String> dtcBytes) {
+    String result = "";
+    List<String> _dtcCodes = [];
+    if (dtcBytes.length < 6) {
+      // checkTheEndItem(context);
+    } else {
+      for (int i = 0; i < dtcBytes.length; i += 3) {
+        if (i >= dtcBytes.length) {
+          break;
+        }
+        try {
+          String binary = int.parse(dtcBytes[i] + dtcBytes[i + 1], radix: 16)
+              .toRadixString(2);
+          if (binary.length != 16) {
+            var len = 16 - binary.length;
+            binary = binary.padLeft(len + binary.length, '0');
+          }
+          result += _initialDataOne(binary.substring(0, 2));
+          result += _initialDataTwo(binary.substring(2, 4));
+          result += _initialDTC(binary.substring(4, 8));
+          result += _initialDTC(binary.substring(8, 12));
+          result += _initialDTC(binary.substring(12, binary.length));
+          if (result != "P0000" && _dtcCodes.contains(result) == false) {
+            _dtcCodes.add(result);
+          }
+        } on RangeError catch (e) {
+          // index range error - no problem
+        }
+        result = "";
+      }
+    }
+    return _dtcCodes;
   }
 
 
