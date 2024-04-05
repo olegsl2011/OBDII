@@ -342,7 +342,9 @@ class Obd2Plugin {
         Uint8List bytes = Uint8List.fromList(data.toList());
         String string = String.fromCharCodes(bytes);
         if (!string.contains('>')) {
-          response += string ;
+          if(string!=lastetCommand) {
+            response +=string;
+          }
         } else {
           response += string ;
           if (this.onResponse != null){
@@ -390,8 +392,8 @@ class Obd2Plugin {
               lastetCommand = "";
               response = "";
             } else if (commandMode == Mode.dtc){
-              String validResponse = response.replaceAll("\n", "").replaceAll("\r", "").replaceAll(">", "").replaceAll("SEARCHING...", "");
-              dtcCodesResponse += _getDtcsFrom(
+              String validResponse = response.replaceAll("\n", "").replaceAll(">", "").replaceAll(" ", "").replaceAll("SEARCHING...", "");
+              dtcCodesResponse += getDtcsFrom(
                   validResponse,
                   limit: "7F ${lastetCommand.contains(" ") ? lastetCommand.split(" ")[0] : lastetCommand.toString()}",
                   command: lastetCommand
@@ -444,78 +446,47 @@ class Obd2Plugin {
     return buffer.toString();
   }
 
+  final List<String> dtcLetters = ['P', 'C', 'B', 'U'];
+  final List<String> hexArray = "0123456789ABCDEF".split('');
 
-  List<String> _getDtcsFrom(String value, {required String limit, required String command}){
+  int hexStringToByteArray(String s) {
+    return int.parse(s, radix: 16) << 4;
+  }
+
+
+  List<String> getDtcsFrom(String value, {required String limit, required String command}){
     String result = "";
     List<String> _dtcCodes = [];
     if (!value.contains(limit)){
-      List<String> dtcBytes = calculateDtcFrames(command, value);
-      if (dtcBytes.length < 6){
-        // checkTheEndItem(context);
-      } else {
-        for ( int i = 0; i < dtcBytes.length; i += 3 ){
-          if (i >= dtcBytes.length){
-            break ;
+      final List<String> resultsArray = result.split('\r');
+      for (final String element in resultsArray) {
+        String workingData;
+        int startIndex = 0; // Header size.
+        if (element.length % 4 == 0) { // CAN(ISO-15765) protocol one frame.
+          workingData = element; // 43yy{codes}
+          startIndex = 4; // Header is 43yy, yy showing the number of data items.
+        } else if (element.contains(":")) { // CAN(ISO-15765) protocol two and more frames.
+          workingData = element.replaceAll(RegExp(r'[\r\n].:'), ''); // xxx43yy{codes}
+          startIndex = 7; // Header is xxx43yy, xxx is bytes of information to follow, yy showing the number of data items.
+        } else { // ISO9141-2, KWP2000 Fast and KWP2000 5Kbps (ISO15031) protocols.
+          workingData = element.replaceAll(RegExp(r'[\r\n]?43'), '');
+        }
+        for (int begin = startIndex; begin < workingData.length; begin += 4) {
+          String dtc = '';
+          int b1 = hexStringToByteArray(workingData.substring(begin, begin + 1));
+          int ch1 = ((b1 & 0xC0) >> 6);
+          int ch2 = ((b1 & 0x30) >> 4);
+          dtc += dtcLetters[ch1];
+          dtc += hexArray[ch2];
+          dtc += workingData.substring(begin + 1, begin + 4);
+          if (dtc != 'P0000') {
+            _dtcCodes.add(dtc);
           }
-          try {
-            String binary = int.parse(dtcBytes[i]+dtcBytes[i+1], radix: 16).toRadixString(2);
-            if (binary.length != 16) {
-              var len = 16 - binary.length;
-              binary = binary.padLeft(len + binary.length, '0');
-            }
-            result += _initialDataOne(binary.substring(0, 2));
-            result += _initialDataTwo(binary.substring(2, 4));
-            result += _initialDTC(binary.substring(4, 8));
-            result += _initialDTC(binary.substring(8, 12));
-            result += _initialDTC(binary.substring(12, binary.length));
-            if(result != "P0000" && _dtcCodes.contains(result) == false){
-              _dtcCodes.add(result);
-            }
-          } on RangeError catch (e){
-            // index range error - no problem
-          }
-          result = "";
         }
       }
     }
     return _dtcCodes ;
   }
-
-  List<String> testGetDTCCodes(List<String> dtcBytes) {
-    String result = "";
-    List<String> _dtcCodes = [];
-    // if (dtcBytes.length < 6) {
-    //   // checkTheEndItem(context);
-    // } else {
-      for (int i = 0; i < dtcBytes.length; i += 3) {
-        if (i >= dtcBytes.length) {
-          break;
-        }
-        try {
-          String binary = int.parse(dtcBytes[i] + dtcBytes[i + 1], radix: 16)
-              .toRadixString(2);
-          if (binary.length != 16) {
-            var len = 16 - binary.length;
-            binary = binary.padLeft(len + binary.length, '0');
-          }
-          result += _initialDataOne(binary.substring(0, 2));
-          result += _initialDataTwo(binary.substring(2, 4));
-          result += _initialDTC(binary.substring(4, 8));
-          result += _initialDTC(binary.substring(8, 12));
-          result += _initialDTC(binary.substring(12, binary.length));
-          if (result != "P0000" && _dtcCodes.contains(result) == false) {
-            _dtcCodes.add(result);
-          }
-        } on RangeError catch (e) {
-          // index range error - no problem
-        }
-        result = "";
-      }
-    // }
-    return _dtcCodes;
-  }
-
-
 
   List<String> _calculateParameterFrames(String command, String response){
     command = command.replaceAll(" ", "");
