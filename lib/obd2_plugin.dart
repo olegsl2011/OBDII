@@ -455,10 +455,9 @@ class Obd2Plugin {
 
 
   List<String> getDtcsFrom(String value, {required String limit, required String command}){
-    String result = "";
     List<String> _dtcCodes = [];
     if (!value.contains(limit)){
-      final List<String> resultsArray = result.split('\r');
+      final List<String> resultsArray = value.split('\r');
       for (final String element in resultsArray) {
         String workingData;
         int startIndex = 0; // Header size.
