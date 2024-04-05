@@ -341,6 +341,7 @@ class Obd2Plugin {
       connection?.input?.listen((Uint8List data){
         Uint8List bytes = Uint8List.fromList(data.toList());
         String string = String.fromCharCodes(bytes);
+        print("##### $string ##### ");
         if (!string.contains('>')) {
           if(string!=lastetCommand) {
             response +=string;
