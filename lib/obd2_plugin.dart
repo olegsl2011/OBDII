@@ -484,9 +484,9 @@ class Obd2Plugin {
   List<String> testGetDTCCodes(List<String> dtcBytes) {
     String result = "";
     List<String> _dtcCodes = [];
-    if (dtcBytes.length < 6) {
-      // checkTheEndItem(context);
-    } else {
+    // if (dtcBytes.length < 6) {
+    //   // checkTheEndItem(context);
+    // } else {
       for (int i = 0; i < dtcBytes.length; i += 3) {
         if (i >= dtcBytes.length) {
           break;
@@ -511,7 +511,7 @@ class Obd2Plugin {
         }
         result = "";
       }
-    }
+    // }
     return _dtcCodes;
   }
 
