@@ -513,7 +513,7 @@ class Obd2Plugin {
 
 
 
-  List<String> _calculateDtcFrames(String command, String response){
+  List<String> calculateDtcFrames(String command, String response){
     command = command.replaceAll(" ", "");
     response = response.replaceAll(" ", "");
 
