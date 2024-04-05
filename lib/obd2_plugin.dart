@@ -460,6 +460,7 @@ class Obd2Plugin {
     if (!value.contains(limit)){
       final List<String> resultsArray = value.split('\r');
       for (final String element in resultsArray) {
+        print("%%%%%% $element %%%%%");
         String workingData;
         int startIndex = 0; // Header size.
         if (element.length % 4 == 0) { // CAN(ISO-15765) protocol one frame.
