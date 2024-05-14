@@ -110,13 +110,9 @@ class Obd2Plugin {
     }).asFuture(discoveryDevices);
   }
 
-  Future<List<BluetoothDevice>> getNearbyPairedDevices(int seconds) async {
+  Future<void> getNearbyPairedDevices(int seconds, Function(List<BluetoothDevice> discoveryDevices) devices) async {
     List<BluetoothDevice> discoveryDevices = [];
-    Future<void>.delayed(
-        Duration(seconds: seconds),
-            () => _bluetooth.cancelDiscovery()
-    );
-     await _bluetooth.startDiscovery().listen((event) async {
+    var stream = _bluetooth.startDiscovery().listen((event) async {
       final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
       if (existingIndex >= 0) {
         if (await isPaired(event.device)){
@@ -127,19 +123,19 @@ class Obd2Plugin {
           discoveryDevices.add(event.device);
         }
       }
-    }).asFuture(discoveryDevices);
-    return discoveryDevices;
+    });
+    Future<void>.delayed(Duration(seconds: seconds), (){
+      devices(discoveryDevices);
+      _bluetooth.cancelDiscovery();
+      stream.cancel();
+    });
   }
 
-  Future<List<BluetoothDevice>> getNearbyAndPairedDevices(int seconds) async {
+  Future<void> getNearbyAndPairedDevices(int seconds, Function(List<BluetoothDevice> discoveryDevices) devices) async {
     List<BluetoothDevice> discoveryDevices = await _bluetooth.getBondedDevices();
-    Future<void>.delayed(
-        Duration(milliseconds: seconds),
-            () => {
-          _bluetooth.cancelDiscovery()
-        }
-    );
-    await _bluetooth.startDiscovery().listen((event) {
+
+
+    var stream =_bluetooth.startDiscovery().listen((event) {
       final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
       if (existingIndex >= 0) {
         discoveryDevices[existingIndex] = event.device;
@@ -148,8 +144,13 @@ class Obd2Plugin {
           discoveryDevices.add(event.device);
         }
       }
-    }).asFuture(discoveryDevices);
-    return discoveryDevices;
+    });
+    Future<void>.delayed(Duration(seconds: seconds), (){
+      devices(discoveryDevices);
+      _bluetooth.cancelDiscovery();
+      stream.cancel();
+    });
+
   }
 
 
