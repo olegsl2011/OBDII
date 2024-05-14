@@ -112,6 +112,10 @@ class Obd2Plugin {
 
   Future<List<BluetoothDevice>> getNearbyPairedDevices(int seconds) async {
     List<BluetoothDevice> discoveryDevices = [];
+    Future<void>.delayed(
+        Duration(seconds: seconds),
+            () => _bluetooth.cancelDiscovery()
+    );
      await _bluetooth.startDiscovery().listen((event) async {
       final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
       if (existingIndex >= 0) {
@@ -124,15 +128,15 @@ class Obd2Plugin {
         }
       }
     }).asFuture(discoveryDevices);
-    Future<void>.delayed(
-        Duration(seconds: seconds),
-            () => _bluetooth.cancelDiscovery()
-    );
     return discoveryDevices;
   }
 
   Future<List<BluetoothDevice>> getNearbyAndPairedDevices(int seconds) async {
     List<BluetoothDevice> discoveryDevices = await _bluetooth.getBondedDevices();
+    Future<void>.delayed(
+        Duration(seconds: seconds),
+            () => _bluetooth.cancelDiscovery()
+    );
     await _bluetooth.startDiscovery().listen((event) {
       final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
       if (existingIndex >= 0) {
@@ -143,11 +147,6 @@ class Obd2Plugin {
         }
       }
     }).asFuture(discoveryDevices);
-
-    Future<void>.delayed(
-        Duration(seconds: seconds),
-            () => _bluetooth.cancelDiscovery()
-        );
     return discoveryDevices;
   }
 
