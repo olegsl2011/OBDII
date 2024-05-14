@@ -11,10 +11,13 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_bluetooth_serial_ble: ^0.5.0
+  flutter_bluetooth_serial_ble:
+    git:
+      url: https://github.com/Erhannis/flutter_bluetooth_serial_ble.git
+      ref: feature/multiplatform
+#  flutter_bluetooth_serial_ble: ^0.5.0
 #  flutter_bluetooth_serial: ^0.4.0
   math_expressions: ^2.3.0
-  permission_handler: ^8.1.4+2
 
 
 dev_dependencies:
