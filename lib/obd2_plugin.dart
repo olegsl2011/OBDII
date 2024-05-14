@@ -4,9 +4,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
-import 'package:flutter_bluetooth_serial_ble/flutter_bluetooth_serial_ble.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:math_expressions/math_expressions.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'extra.dart';
+
 
 enum Mode {
   parameter,
@@ -21,10 +23,9 @@ enum Mode {
 class Obd2Plugin {
   static const MethodChannel _channel = MethodChannel('obd2_plugin');
 
-  BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
-  final FlutterBluetoothSerial _bluetooth = FlutterBluetoothSerial.instance;
-
-  BluetoothConnection? connection ;
+  BluetoothAdapterState _bluetoothState = BluetoothAdapterState.unknown;
+  BluetoothDevice? _device;
+  List<BluetoothService> _services = [];
   int requestCode = 999999999999999999;
   String lastetCommand = "";
   Function(String command, String response, int requestCode)? onResponse ;
@@ -33,15 +34,16 @@ class Obd2Plugin {
   bool sendDTCToResponse = false ;
   dynamic runningService = '';
   List<dynamic> parameterResponse = [];
-
+  Function(String error)? onError ;
+  BluetoothConnectionState _connectionState = BluetoothConnectionState.disconnected;
   static Future<String?> get platformVersion async {
     final String? version = await _channel.invokeMethod('getPlatformVersion');
     return version;
   }
 
 
-  Future<BluetoothState> get initBluetooth async {
-    _bluetoothState = await FlutterBluetoothSerial.instance.state;
+  Future<BluetoothAdapterState> get initBluetooth async {
+    _bluetoothState = await FlutterBluePlus.adapterState.last;
     return _bluetoothState;
   }
 
@@ -50,25 +52,11 @@ class Obd2Plugin {
     await Permission.bluetoothConnect.request();
     await Permission.bluetoothScan.request();
     bool status = false;
-    if (_bluetoothState == BluetoothState.STATE_OFF) {
-      bool? newStatus = await FlutterBluetoothSerial.instance.requestEnable();
-      if (newStatus != null && newStatus != false){
-        status = true ;
-      }
+    if (_bluetoothState == BluetoothAdapterState.off) {
+      await FlutterBluePlus.turnOn();
+      status = FlutterBluePlus.adapterStateNow == BluetoothAdapterState.on;
     } else {
       status = true ;
-    }
-    return status ;
-  }
-
-
-  Future<bool> get disableBluetooth async {
-    bool status = false;
-    if (_bluetoothState == BluetoothState.STATE_ON) {
-      bool? newStatus = await FlutterBluetoothSerial.instance.requestDisable();
-      if(newStatus != null && newStatus != false){
-        newStatus = true ;
-      }
     }
     return status ;
   }
@@ -77,9 +65,9 @@ class Obd2Plugin {
   Future<bool> get isBluetoothEnable async {
     await Permission.bluetoothConnect.request();
     await Permission.bluetoothScan.request();
-    if (_bluetoothState == BluetoothState.STATE_OFF) {
+    if (_bluetoothState == BluetoothAdapterState.off) {
       return false ;
-    } else if (_bluetoothState == BluetoothState.STATE_ON) {
+    } else if (_bluetoothState == BluetoothAdapterState.on) {
       return true ;
     } else {
       try {
@@ -93,78 +81,72 @@ class Obd2Plugin {
   }
 
   Future<List<BluetoothDevice>> get getPairedDevices async {
-    return await _bluetooth.getBondedDevices();
+    return await await FlutterBluePlus.systemDevices;
   }
 
-  Future<List<BluetoothDevice>> get getNearbyDevices async {
-    List<BluetoothDevice> discoveryDevices = [];
-    return await _bluetooth.startDiscovery().listen((event) {
-      final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
-      if (existingIndex >= 0) {
-        discoveryDevices[existingIndex] = event.device;
+  Future<void> get scanDevices async {
+    await FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
+
+  }
+
+  StreamSubscription<BluetoothConnectionState>? _connectionStateSubscription;
+  StreamSubscription<bool>? _isConnectingSubscription;
+  StreamSubscription<bool>? _isDisconnectingSubscription;
+
+  Future<void> getConnection(BluetoothDevice device, Function(BluetoothConnectionState? connection) connectionState,Function(bool connected) isConnected,Function(bool connected) isDisconnected,  Function(String message) onError) async {
+    _connectionStateSubscription?.cancel();
+    _isConnectingSubscription?.cancel();
+    _isDisconnectingSubscription?.cancel();
+
+    _device = device;
+    _connectionStateSubscription = _device?.connectionState.listen((state) async {
+      _connectionState = state;
+      connectionState(state);
+    });
+
+
+    _isConnectingSubscription = _device?.isConnecting.listen((value) {
+      isConnected(value);
+    });
+
+    _isDisconnectingSubscription = _device?.isDisconnecting.listen((value) {
+      isDisconnected(value);
+    });
+    try {
+      device.connectAndUpdateStream();
+    } catch (e) {
+      if (e is FlutterBluePlusException && e.code == FbpErrorCode.connectionCanceled.index) {
+        // ignore connections canceled by the user
       } else {
-        if (event.device.name != null){
-          discoveryDevices.add(event.device);
-        }
+        onError(prettyException("Connect Error:", e));
       }
-    }).asFuture(discoveryDevices);
-  }
-
-  Future<List<BluetoothDevice>> get getNearbyPairedDevices async {
-    List<BluetoothDevice> discoveryDevices = [];
-    return await _bluetooth.startDiscovery().listen((event) async {
-      final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
-      if (existingIndex >= 0) {
-        if (await isPaired(event.device)){
-          discoveryDevices[existingIndex] = event.device;
-        }
-      } else {
-        if (event.device.name != null){
-          discoveryDevices.add(event.device);
-        }
-      }
-    }).asFuture(discoveryDevices);
-  }
-
-  Future<List<BluetoothDevice>> get getNearbyAndPairedDevices async {
-    List<BluetoothDevice> discoveryDevices = await _bluetooth.getBondedDevices();
-    await _bluetooth.startDiscovery().listen((event) {
-      final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
-      if (existingIndex >= 0) {
-        discoveryDevices[existingIndex] = event.device;
-      } else {
-        if (event.device.name != null){
-          discoveryDevices.add(event.device);
-        }
-      }
-    }).asFuture(discoveryDevices);
-    return discoveryDevices;
-  }
-
-
-  Future<void> getConnection(BluetoothDevice _device, Function(BluetoothConnection? connection) onConnected, Function(String message) onError) async {
-    if (connection != null){
-      await onConnected(connection);
-      return ;
     }
-    connection = await BluetoothConnection.toAddress(_device.address);
-    if (connection != null){
-      await onConnected(connection);
-    } else {
-      throw Exception("Sorry this happened. But I can not connect to the device. But I guess the device is not nearby or you have not disconnected before. Finally, if you wants to enter into a new relationship, you must end his previous relationship");
+  }
+
+  Future<List<BluetoothService>> onDiscoverServices(Function(String message) onError) async {
+    try {
+      _services = await _device?.discoverServices() ?? [];
+    } catch (e) {
+      onError(prettyException("Discover Services Error:", e));
+    }
+    return _services;
+  }
+
+  Future<void> sendData(BluetoothCharacteristic characteristic){
+    if(_device!=null && _device!.isConnected){
+      characteristic.onValueReceived.listen((event) {
+
+      });
     }
   }
 
 
-  Future<bool> disconnect () async {
-    if (connection?.isConnected == true) {
-      await connection?.close() ;
-      connection = null ;
-      return true ;
-    } else {
-      connection = null ;
-      return false ;
-    }
+
+  Future<void> disconnect () async {
+    await _device?.disconnectAndUpdateStream(queue: false);
+    _connectionStateSubscription?.cancel();
+    _isConnectingSubscription?.cancel();
+    _isDisconnectingSubscription?.cancel();
   }
 
   Future<int> getParamsFromJSON (String jsonString, {int lastIndex = 0, int requestCode = 4}) async {
@@ -265,40 +247,6 @@ class Obd2Plugin {
     }
 
     return (stm.length * 150 + 1500);
-  }
-
-
-
-
-  Future<bool> pairWithDevice(BluetoothDevice _device) async {
-    bool paired = false;
-    bool? isPaired = await _bluetooth.bondDeviceAtAddress(_device.address);
-    if (isPaired != null){
-      paired = isPaired ;
-    }
-    return paired ;
-  }
-
-  Future<bool> unpairWithDevice(BluetoothDevice _device) async {
-    bool unpaired = false;
-    try {
-      bool? isUnpaired = await _bluetooth.removeDeviceBondWithAddress(_device.address);
-      if (isUnpaired != null){
-        unpaired = isUnpaired;
-      }
-    } catch (e) {
-      unpaired = false ;
-    }
-    return unpaired;
-  }
-
-  Future<bool> isPaired (BluetoothDevice _device) async {
-    BluetoothBondState state = await _bluetooth.getBondStateForAddress(_device.address);
-    return state.isBonded;
-  }
-
-  Future<bool> get hasConnection async {
-    return connection != null ;
   }
 
   Future<void> _write(String command, int requestCode) async {
@@ -669,6 +617,16 @@ class Obd2Plugin {
     }
     return result ;
   }
+
+  String prettyException(String prefix, dynamic e) {
+    if (e is FlutterBluePlusException) {
+      return "$prefix ${e.description}";
+    } else if (e is PlatformException) {
+      return "$prefix ${e.message}";
+    }
+    return prefix + e.toString();
+  }
+
 
 
 }
