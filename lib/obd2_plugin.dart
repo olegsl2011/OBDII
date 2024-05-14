@@ -134,8 +134,10 @@ class Obd2Plugin {
   Future<List<BluetoothDevice>> getNearbyAndPairedDevices(int seconds) async {
     List<BluetoothDevice> discoveryDevices = await _bluetooth.getBondedDevices();
     Future<void>.delayed(
-        Duration(seconds: seconds),
-            () => _bluetooth.cancelDiscovery()
+        Duration(milliseconds: seconds),
+            () => {
+          _bluetooth.cancelDiscovery()
+        }
     );
     await _bluetooth.startDiscovery().listen((event) {
       final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
