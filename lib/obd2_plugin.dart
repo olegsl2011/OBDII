@@ -110,9 +110,9 @@ class Obd2Plugin {
     }).asFuture(discoveryDevices);
   }
 
-  Future<void> getNearbyPairedDevices(Function(List<BluetoothDevice> discoveryDevices) devices) async {
+  Future<List<BluetoothDevice>> getNearbyPairedDevices(int seconds) async {
     List<BluetoothDevice> discoveryDevices = [];
-    var stream = await _bluetooth.startDiscovery().listen((event) async {
+     await _bluetooth.startDiscovery().listen((event) async {
       final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
       if (existingIndex >= 0) {
         if (await isPaired(event.device)){
@@ -123,13 +123,17 @@ class Obd2Plugin {
           discoveryDevices.add(event.device);
         }
       }
-    });
-    stream.onDone(() {devices(discoveryDevices);});
+    }).asFuture(discoveryDevices);
+    Future<void>.delayed(
+        Duration(seconds: seconds),
+            () => _bluetooth.cancelDiscovery()
+    );
+    return discoveryDevices;
   }
 
-  Future<void> getNearbyAndPairedDevices(Function(List<BluetoothDevice> discoveryDevices) devices) async {
+  Future<List<BluetoothDevice>> getNearbyAndPairedDevices(int seconds) async {
     List<BluetoothDevice> discoveryDevices = await _bluetooth.getBondedDevices();
-    var stream = await _bluetooth.startDiscovery().listen((event) {
+    await _bluetooth.startDiscovery().listen((event) {
       final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
       if (existingIndex >= 0) {
         discoveryDevices[existingIndex] = event.device;
@@ -138,8 +142,13 @@ class Obd2Plugin {
           discoveryDevices.add(event.device);
         }
       }
-    });
-    stream.onDone(() {devices(discoveryDevices);});
+    }).asFuture(discoveryDevices);
+
+    Future<void>.delayed(
+        Duration(seconds: seconds),
+            () => _bluetooth.cancelDiscovery()
+        );
+    return discoveryDevices;
   }
 
 
