@@ -95,19 +95,40 @@ class Obd2Plugin {
   Future<List<BluetoothDevice>> get getPairedDevices async {
     return await _bluetooth.getBondedDevices();
   }
+  //
+  // Future<List<BluetoothDevice>> get getNearbyDevices async {
+  //   List<BluetoothDevice> discoveryDevices = [];
+  //   return await _bluetooth.startDiscovery().listen((event) {
+  //     final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
+  //     if (existingIndex >= 0) {
+  //       discoveryDevices[existingIndex] = event.device;
+  //     } else {
+  //       if (event.device.name != null){
+  //         discoveryDevices.add(event.device);
+  //       }
+  //     }
+  //   }).asFuture(discoveryDevices);
+  // }
 
-  Future<List<BluetoothDevice>> get getNearbyDevices async {
+
+
+  Future<void> getNearbyDevices(int seconds, Function(List<BluetoothDevice> discoveryDevices) devices) async {
     List<BluetoothDevice> discoveryDevices = [];
-    return await _bluetooth.startDiscovery().listen((event) {
+    var stream = _bluetooth.startDiscovery().listen((event) async {
       final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
       if (existingIndex >= 0) {
-        discoveryDevices[existingIndex] = event.device;
+          discoveryDevices[existingIndex] = event.device;
       } else {
         if (event.device.name != null){
           discoveryDevices.add(event.device);
         }
       }
-    }).asFuture(discoveryDevices);
+    });
+    Future<void>.delayed(Duration(seconds: seconds), (){
+      devices(discoveryDevices);
+      _bluetooth.cancelDiscovery();
+      stream.cancel();
+    });
   }
 
   Future<void> getNearbyPairedDevices(int seconds, Function(List<BluetoothDevice> discoveryDevices) devices) async {
@@ -115,6 +136,7 @@ class Obd2Plugin {
     var stream = _bluetooth.startDiscovery().listen((event) async {
       final existingIndex = discoveryDevices.indexWhere((element) => element.address == event.device.address);
       if (existingIndex >= 0) {
+
         if (await isPaired(event.device)){
           discoveryDevices[existingIndex] = event.device;
         }
