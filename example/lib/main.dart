@@ -3,7 +3,6 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:obd2_plugin/obd2_plugin.dart';
-import 'package:flutter_bluetooth_serial_ble/flutter_bluetooth_serial_ble.dart';
 
 void main() {
   runApp(const MyApp());
@@ -59,14 +58,12 @@ class Float extends StatelessWidget {
         if(!(await MyApp.of(context).obd2.isBluetoothEnable)){
           await MyApp.of(context).obd2.enableBluetooth ;
         }
-        if (!(await MyApp.of(context).obd2.hasConnection)){
-          await showBluetoothList(context, MyApp.of(context).obd2);
-        } else {
-          if (!(await MyApp.of(context).obd2.isListenToDataInitialed)){
-            MyApp.of(context).obd2.setOnDataReceived((command, response, requestCode){
-              print("$command => $response");
-            });
-          }
+       {
+          // if (!(await MyApp.of(context).obd2.isListenToDataInitialed)){
+          //   MyApp.of(context).obd2.setOnDataReceived((command, response, requestCode){
+          //     print("$command => $response");
+          //   });
+          // }
           await Future.delayed(Duration(milliseconds: await MyApp.of(context).obd2.configObdWithJSON('''[
             {
                 "command": "AT Z",
@@ -318,40 +315,40 @@ class Float extends StatelessWidget {
 }
 
 
-Future<void> showBluetoothList(BuildContext context, Obd2Plugin obd2plugin) async {
-  List<BluetoothDevice> devices = await obd2plugin.getPairedDevices ;
-  showModalBottomSheet(
-      context: context,
-      builder: (builder) {
-        return Container(
-          padding: const EdgeInsets.only(top: 0),
-          width: double.infinity,
-          height: devices.length * 50,
-          child: ListView.builder(
-            itemCount: devices.length,
-            itemBuilder: (context, index){
-              return SizedBox(
-                height: 50,
-                child: TextButton(
-                  onPressed: (){
-                    obd2plugin.getConnection(devices[index], (connection)
-                    {
-                      print("connected to bluetooth device.");
-                      Navigator.pop(builder);
-                    }, (message) {
-                      print("error in connecting: $message");
-                      Navigator.pop(builder);
-                    });
-                  },
-                  child: Center(
-                    child: Text(devices[index].name.toString()),
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      }
-  );
-}
+// Future<void> showBluetoothList(BuildContext context, Obd2Plugin obd2plugin) async {
+//   // List<BluetoothDevice> devices = await obd2plugin.getPairedDevices ;
+//   // showModalBottomSheet(
+//   //     context: context,
+//   //     builder: (builder) {
+//   //       return Container(
+//   //         padding: const EdgeInsets.only(top: 0),
+//   //         width: double.infinity,
+//   //         height: devices.length * 50,
+//   //         child: ListView.builder(
+//   //           itemCount: devices.length,
+//   //           itemBuilder: (context, index){
+//   //             return SizedBox(
+//   //               height: 50,
+//   //               child: TextButton(
+//   //                 onPressed: (){
+//   //                   obd2plugin.getConnection(devices[index], (connection)
+//   //                   {
+//   //                     print("connected to bluetooth device.");
+//   //                     Navigator.pop(builder);
+//   //                   }, (message) {
+//   //                     print("error in connecting: $message");
+//   //                     Navigator.pop(builder);
+//   //                   });
+//   //                 },
+//   //                 child: Center(
+//   //                   child: Text(devices[index].name.toString()),
+//   //                 ),
+//   //               ),
+//   //             );
+//   //           },
+//   //         ),
+//   //       );
+//   //     }
+//   );
+// }
 

@@ -36,6 +36,7 @@ class Obd2Plugin {
   List<dynamic> parameterResponse = [];
   Function(String error)? onError ;
   BluetoothConnectionState _connectionState = BluetoothConnectionState.disconnected;
+  BluetoothCharacteristic? characteristic;
   static Future<String?> get platformVersion async {
     final String? version = await _channel.invokeMethod('getPlatformVersion');
     return version;
@@ -131,16 +132,6 @@ class Obd2Plugin {
     }
     return _services;
   }
-
-  Future<void> sendData(BluetoothCharacteristic characteristic){
-    if(_device!=null && _device!.isConnected){
-      characteristic.onValueReceived.listen((event) {
-
-      });
-    }
-  }
-
-
 
   Future<void> disconnect () async {
     await _device?.disconnectAndUpdateStream(queue: false);
@@ -252,8 +243,8 @@ class Obd2Plugin {
   Future<void> _write(String command, int requestCode) async {
     lastetCommand = command;
     this.requestCode = requestCode ;
-    connection?.output.add(Uint8List.fromList(utf8.encode("$command\r\n"))) ;
-    await connection?.output.allSent ;
+    await characteristic?.write(Uint8List.fromList(utf8.encode("$command\r\n"))) ;
+    // await characteristic.write(Uint8List.fromList(utf8.encode("03\r\n")));
   }
 
   double _volEff = 0.8322 ;
@@ -279,15 +270,25 @@ class Obd2Plugin {
     return onResponse != null ;
   }
 
+  //   void applyBluetoothCharacteristic (BluetoothCharacteristic characteristic) {
+  //     if(_device!=null && _device!.isConnected){
+  //       characteristic.onValueReceived.listen((event) {
+  //
+  //       });
+  //       this.characteristic = characteristic;
+  //       // await characteristic.write(Uint8List.fromList(utf8.encode("03\r\n")));
+  //     }
+  //   }
 
-  Future<void> setOnDataReceived(Function(String command, String response, int requestCode) onResponse) async {
+  Future<void> setOnDataReceived(BluetoothCharacteristic characteristic, Function(String command, String response, int requestCode) onResponse) async {
+    this.characteristic = characteristic;
     String response = "";
     if (this.onResponse != null){
       throw Exception("onDataReceived is preset and you can not reprogram it");
     } else {
       this.onResponse = onResponse ;
-      connection?.input?.listen((Uint8List data){
-        Uint8List bytes = Uint8List.fromList(data.toList());
+      characteristic.onValueReceived.listen((List<int> data){
+        Uint8List bytes = Uint8List.fromList(data);
         String string = String.fromCharCodes(bytes);
         if (!string.contains('>')) {
           if(string!=lastetCommand+"\r") {

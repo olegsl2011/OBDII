@@ -45,7 +45,7 @@
     },
     {
       "name": "flutter_blue_plus",
-      "rootUri": "file:///Users/admin/.pub-cache/hosted/pub.dev/flutter_blue_plus-1.32.6",
+      "rootUri": "file:///Users/admin/.pub-cache/hosted/pub.dev/flutter_blue_plus-1.32.7",
       "packageUri": "lib/",
       "languageVersion": "2.15"
     },
@@ -81,9 +81,9 @@
     },
     {
       "name": "math_expressions",
-      "rootUri": "file:///Users/admin/.pub-cache/hosted/pub.dev/math_expressions-2.3.0",
+      "rootUri": "file:///Users/admin/.pub-cache/hosted/pub.dev/math_expressions-2.5.0",
       "packageUri": "lib/",
-      "languageVersion": "2.12"
+      "languageVersion": "3.0"
     },
     {
       "name": "meta",
@@ -176,7 +176,7 @@
       "languageVersion": "2.12"
     }
   ],
-  "generated": "2024-05-14T07:47:27.808104Z",
+  "generated": "2024-05-17T09:05:15.953616Z",
   "generator": "pub",
   "generatorVersion": "3.2.3"
 }
