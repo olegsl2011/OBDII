@@ -106,9 +106,9 @@ packages:
     dependency: transitive
     description:
       path: "."
-      ref: "feature/multiplatform"
-      resolved-ref: bb4ebe38ecdd9dc26074449461998c4db04d7d9c
-      url: "https://github.com/Erhannis/flutter_bluetooth_serial_ble.git"
+      ref: multiplatform
+      resolved-ref: "1b11ee160632d41e162a4ca65bdc308b8dea2ed8"
+      url: "https://github.com/olegsl2011/flutter_bluetooth_serial_ble.git"
     source: git
     version: "0.5.0"
   flutter_lints:

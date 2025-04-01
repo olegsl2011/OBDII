@@ -44,6 +44,7 @@ android {
         minSdkVersion 19
     }
     buildToolsVersion '30.0.3'
+    namespace 'app.begaz.obd.two.plugin.obd2_plugin'
 }
 
 dependencies {

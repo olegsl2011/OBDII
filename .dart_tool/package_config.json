@@ -75,7 +75,7 @@
     },
     {
       "name": "flutter_bluetooth_serial_ble",
-      "rootUri": "file:///Users/admin/.pub-cache/git/flutter_bluetooth_serial_ble-bb4ebe38ecdd9dc26074449461998c4db04d7d9c/",
+      "rootUri": "file:///Users/admin/.pub-cache/git/flutter_bluetooth_serial_ble-1b11ee160632d41e162a4ca65bdc308b8dea2ed8/",
       "packageUri": "lib/",
       "languageVersion": "2.15"
     },
@@ -260,7 +260,7 @@
       "languageVersion": "2.12"
     }
   ],
-  "generated": "2024-05-17T09:32:16.644730Z",
+  "generated": "2024-05-20T13:41:39.376338Z",
   "generator": "pub",
   "generatorVersion": "3.2.3"
 }
